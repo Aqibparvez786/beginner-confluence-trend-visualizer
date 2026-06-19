@@ -1,0 +1,126 @@
+//@version=6
+indicator("Beginner Confluence Trend Visualizer", shorttitle="BCTV", overlay=true)
+
+
+// INPUTS
+
+smaLength      = input.int(50,  minval=1, title="Trend SMA Length")
+rsiLength      = input.int(14,  minval=1, title="RSI Length")
+rsiOverBought  = input.int(70,  minval=50, maxval=100, title="RSI Overbought Level")
+rsiOverSold    = input.int(30,  minval=0,  maxval=50,  title="RSI Oversold Level")
+
+showBackground = input.bool(true, title="Show Background Highlights")
+showSignals    = input.bool(true, title="Show Buy/Sell Markers")
+
+
+// CALCULATIONS
+
+
+smaVal = ta.sma(close, smaLength)
+rsiVal = ta.rsi(close, rsiLength)
+
+
+// TREND CONDITIONS
+
+
+uptrend   = close > smaVal
+downtrend = close < smaVal
+
+
+// CONFLUENCE LOGIC
+
+
+// Bullish:
+// Price above SMA + RSI oversold
+bullishSignal = uptrend and (rsiVal < rsiOverSold)
+
+// Bearish:
+// Price below SMA + RSI overbought
+bearishSignal = downtrend and (rsiVal > rsiOverBought)
+
+
+// VISUALS
+
+
+// Trend SMA
+plot(
+     smaVal,
+     title="Trend SMA",
+     color=color.blue,
+     linewidth=2
+)
+
+// Background Highlights
+bgcolor(
+     showBackground and bullishSignal
+     ? color.new(color.green, 88)
+     : na,
+     title="Bullish Dip Zone"
+)
+
+bgcolor(
+     showBackground and bearishSignal
+     ? color.new(color.red, 88)
+     : na,
+     title="Bearish Rally Zone"
+)
+
+// Signal Markers
+plotshape(
+     showSignals and bullishSignal,
+     title="Bullish Confluence",
+     style=shape.triangleup,
+     location=location.belowbar,
+     color=color.green,
+     size=size.small,
+     text="BUY"
+)
+
+plotshape(
+     showSignals and bearishSignal,
+     title="Bearish Confluence",
+     style=shape.triangledown,
+     location=location.abovebar,
+     color=color.red,
+     size=size.small,
+     text="SELL"
+)
+
+
+// ALERTS
+
+
+alertcondition(
+     bullishSignal,
+     title="Bullish Confluence Alert",
+     message="Bullish Confluence Detected: Price above SMA and RSI Oversold."
+)
+
+alertcondition(
+     bearishSignal,
+     title="Bearish Confluence Alert",
+     message="Bearish Confluence Detected: Price below SMA and RSI Overbought."
+)
+
+
+// STATUS TABLE
+
+
+var table statusTable = table.new(position.top_right, 2, 3)
+
+if barstate.islast
+    table.cell(statusTable, 0, 0, "Trend")
+    table.cell(statusTable, 1, 0, uptrend ? "Bullish" : "Bearish")
+
+    table.cell(statusTable, 0, 1, "RSI")
+    table.cell(statusTable, 1, 1, str.tostring(math.round(rsiVal, 2)))
+
+    table.cell(statusTable, 0, 2, "Signal")
+    table.cell(
+         statusTable,
+         1,
+         2,
+         bullishSignal ? "BUY DIP" :
+         bearishSignal ? "SELL RALLY" :
+         "NONE"
+    )
